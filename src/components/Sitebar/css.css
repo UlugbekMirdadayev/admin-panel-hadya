@@ -1,0 +1,46 @@
+.sitebar{
+    width: 20%;
+    height: 100%;
+    background-color: #f4f4f4;
+    transition: 0.5s;
+    overflow-y: auto;
+    padding-top: 60px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: center;
+    gap: 20px;
+
+
+
+
+}
+.sitebar > a{
+    text-decoration: none;
+    color: black;
+    font-size: 1.5rem;
+    font-weight: 600;
+    transition: 0.3s;
+    padding: 10px;
+    border-radius: 10px;
+    width: 80%;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    background-color: #f4f4f4;
+
+}
+
+.sitebar > a:hover{
+    background-color: #f4f4f4;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    color:green;
+}
+
+.sitebar > a.active{
+    background-color:green;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    color:rgb(255, 255, 255);
+
+
+}
