@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import "./css.css";
 import axios from "axios";
 import { useOutsideClick } from "../../utils/hook";
-import io from "socket.io-client";
-const socket = io.connect("https://api.hadyacrm.uz");
 
 export default function Order() {
   const wrapperRef = useRef();
@@ -71,13 +69,6 @@ export default function Order() {
   }
 
   useOutsideClick(wrapperRef, () => setIsOpen(false));
-
-  useEffect(() => {
-    socket.emit("/rooms");
-    socket.on("/rooms", (data) => {
-      getOrders();
-    });
-  }, []);
 
   return (
     <div>

@@ -1,10 +1,11 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
-import Admin from "./page/Admin/Admin";
 import Afitsant from "./page/Afitsant/Afitsant";
 import Sitebar from "./components/Sitebar/Sitebar";
 import Addproduct from "./page/Addproduct/Addproduct";
 import Order from "./page/Order/Order";
+import Login from "./page/auth/login";
+import Register from "./page/auth/register";
 
 export default function App() {
   return (
@@ -13,10 +14,15 @@ export default function App() {
 
       <div className="routes">
         <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Private Routes  */}
+
           <Route path="/" element={<Afitsant />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/order" element={  <Order/>} />
-          <Route path="/addproduct" element={  <Addproduct/>   } />
+          <Route path="/admin" element={<Register />} />
+          <Route path="/order" element={<Order />} />
+          <Route path="/addproduct" element={<Addproduct />} />
         </Routes>
       </div>
     </div>
