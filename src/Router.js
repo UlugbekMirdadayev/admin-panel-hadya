@@ -1,30 +1,57 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
-import Afitsant from "./page/Afitsant/Afitsant";
-import Sitebar from "./components/Sitebar/Sitebar";
-import Addproduct from "./page/Addproduct/Addproduct";
-import Order from "./page/Order/Order";
-import Login from "./page/auth/login";
-import Register from "./page/auth/register";
+import Sidebar from "./components/Sidebar";
+import Dashboard from "./page/dashboard";
+import { Flex, LoadingOverlay } from "@mantine/core";
+import { useLoader } from "./redux/selectors";
+import Waiter from "./page/waiter";
+import Room from "./page/rooms";
+import Orders from "./page/orders";
+import Admin from "./page/admin";
+import Product from "./page/products";
+
+const routes = [
+  {
+    path: "/",
+    element: <Dashboard />,
+  },
+  {
+    path: "/waiter",
+    element: <Waiter />,
+  },
+  {
+    path: "/rooms",
+    element: <Room />,
+  },
+  {
+    path: "/products",
+    element: <Product />,
+  },
+  {
+    path: "/live-orders",
+    element: <Orders />,
+  },
+  {
+    path: "/admin-create",
+    element: <Admin />,
+  },
+];
 
 export default function App() {
+  const loading = useLoader();
   return (
-    <div className="main">
-      <Sitebar />
-
-      <div className="routes">
+    <Flex maw={"100vw"} gutter={0}>
+      <Flex miw={200}>
+        <Sidebar />
+      </Flex>
+      <Flex w={"calc(100vw - 200px)"} pos={"relative"}>
+        <LoadingOverlay visible={loading} />
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
-          {/* Private Routes  */}
-
-          <Route path="/" element={<Afitsant />} />
-          <Route path="/admin" element={<Register />} />
-          <Route path="/order" element={<Order />} />
-          <Route path="/addproduct" element={<Addproduct />} />
+          {routes.map((route) => (
+            <Route key={route.path} {...route} />
+          ))}
         </Routes>
-      </div>
-    </div>
+      </Flex>
+    </Flex>
   );
 }
