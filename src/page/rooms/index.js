@@ -1,40 +1,89 @@
 import React, { useCallback, useEffect } from "react";
 import TableComponent from "./table";
-import { useRooms } from "../../redux/selectors";
+import { useRooms, useUser } from "../../redux/selectors";
 import { useDispatch } from "react-redux";
 import { setLoader } from "../../redux/loaderSlice";
 import { getRequest } from "../../services/api";
 import { toast } from "react-toastify";
-import { Title } from "@mantine/core";
+import { Button, Flex, Title } from "@mantine/core";
 import { setRooms } from "../../redux/roomSlice";
+import ModalScreen from "../../components/modal";
+import FormCreate from "./form";
+import { handleDelete } from "../../utils/helpers";
+import { PlusIcon, Reload } from "../../components/icon";
 
 const Room = () => {
+  const user = useUser();
   const rooms = useRooms();
 
   const dispatch = useDispatch();
 
-  const handleGetRooms = useCallback(() => {
-    if (rooms?.length) return;
-    dispatch(setLoader(true));
-    getRequest("room")
-      .then(({ data }) => {
-        dispatch(setLoader(false));
-        dispatch(setRooms(data?.innerData));
-      })
-      .catch((err) => {
-        dispatch(setLoader(false));
-        toast.error(err?.response?.data?.message || "Error");
-      });
-  }, [dispatch, rooms?.length]);
+  const handleGetRooms = useCallback(
+    (update) => {
+      if (!update && rooms?.length) return;
+      dispatch(setLoader(true));
+      getRequest("room", user?.token)
+        .then(({ data }) => {
+          dispatch(setLoader(false));
+          dispatch(setRooms(data?.innerData));
+        })
+        .catch((err) => {
+          dispatch(setLoader(false));
+          toast.error(err?.response?.data?.message || "Error");
+        });
+    },
+    [dispatch, rooms?.length, user?.token]
+  );
 
   useEffect(() => {
     handleGetRooms();
   }, [handleGetRooms]);
 
+
   return (
     <div className="container-page">
-      <Title>Ofitsiantlar</Title>
-      <TableComponent data={rooms} />
+      <Flex
+        style={{ zIndex: 9 }}
+        justify={"space-between"}
+        align={"center"}
+        pos={"sticky"}
+        top={0}
+        bg={"#fff"}
+      >
+        <Title>Xonalar/Stollar</Title>
+        <Button onClick={() => handleGetRooms(true)}>
+          <Flex align={"center"} gap={10}>
+            <Reload fill="#fff" />
+            <span>Ma'lumotlarni Yangilash</span>
+          </Flex>
+        </Button>
+        <ModalScreen
+          title={"Yangi xona/stol qo'shish"}
+          btn_title={
+            <Flex align={"center"} gap={10}>
+              <PlusIcon fill="#fff" /> <span>Yangi xona/stol qo'shish</span>
+            </Flex>
+          }
+          body={({ close }) => (
+            <FormCreate
+              handleUpdate={handleGetRooms}
+              setLoader={(boolean) => dispatch(setLoader(boolean))}
+              close={close}
+            />
+          )}
+        />
+      </Flex>
+      <TableComponent
+        data={rooms}
+        handleDelete={(id) =>
+          handleDelete(
+            `room/${id}`,
+            (boolean) => dispatch(setLoader(boolean)),
+            handleGetRooms,
+            user?.token
+          )
+        }
+      />
     </div>
   );
 };

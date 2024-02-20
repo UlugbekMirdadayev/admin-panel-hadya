@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Button, Flex, Image, Table, Text } from "@mantine/core";
+import { Button, Flex, Image, Menu, Table, Text } from "@mantine/core";
 import moment from "moment";
 import { formatCurrencyUZS } from "../../utils/helpers";
 import { departments } from "../../utils/constants";
 import ModalScreen from "../../components/modal";
+import { Eye, Trash } from "../../components/icon";
 
 export default function TableComponent({ data, handleDelete }) {
   const [image, setImage] = useState(null);
@@ -13,25 +14,24 @@ export default function TableComponent({ data, handleDelete }) {
       <Table.Td>{formatCurrencyUZS(element?.price)}</Table.Td>
       <Table.Td>{element?.type}</Table.Td>
       <Table.Td>
-        {departments.find(({ value }) => value === element?.department).label}
-        {element?.department}
+        {departments?.find(({ value }) => value === element?.department)?.label}
       </Table.Td>
       <Table.Td>
-        {moment(element?.created_at).format("DD-MM-YYYY/HH:MM")}
+        {moment(element?.created_at).format("DD-MM-YYYY HH:mm")}
       </Table.Td>
       <Table.Td onClick={() => setImage(element?.img)}>
         <ModalScreen
           title={"Product rasmi"}
           btn_title={
-            <Flex align={"center"} gap={20}>
-              <Text>Rasmni Ko'rish</Text>
+            <Flex align={"center"} gap={10}>
+              <Eye /> <Text>Rasmni Ko'rish</Text>
             </Flex>
           }
           body={({ close }) => (
             <Image
               src={image}
-              maw={300}
-              mah={300}
+              w={300}
+              h={300}
               style={{
                 objectFit: "contain",
                 margin: "auto",
@@ -41,15 +41,41 @@ export default function TableComponent({ data, handleDelete }) {
         />
       </Table.Td>
       <Table.Td>
-        <Button onClick={() => handleDelete(element?.id)} bg={"#f45"}>
-          O'chirish
-        </Button>
+        <Menu
+          shadow="md"
+          width={200}
+          transitionProps={{ transition: "pop", duration: 150 }}
+          position="left-start"
+        >
+          <Menu.Target>
+            <Button color="red" display={"flex"} align={"center"}>
+              <Trash fill="#fff" /> <Text pl={10}>O'chirish</Text>
+            </Button>
+          </Menu.Target>
+
+          <Menu.Dropdown>
+            <Menu.Label>O'chirishga rozimisiz</Menu.Label>
+            <Menu.Divider />
+            <Menu.Item onClick={() => handleDelete(element?.id)} color="red">
+              Ha , roziman
+            </Menu.Item>
+            <Menu.Item>Yo'q , keyinroq</Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
       </Table.Td>
     </Table.Tr>
   ));
 
   return (
-    <Table mt={"lg"} pt={"lg"} w={"100%"}>
+    <Table
+      my={"lg"}
+      pt={"lg"}
+      w={"100%"}
+      striped
+      highlightOnHover
+      withTableBorder
+      withColumnBorders
+    >
       <Table.Thead>
         <Table.Tr>
           <Table.Th>Maxsulot nomi</Table.Th>
@@ -61,7 +87,17 @@ export default function TableComponent({ data, handleDelete }) {
           <Table.Th>O'chirish</Table.Th>
         </Table.Tr>
       </Table.Thead>
-      <Table.Tbody>{rows}</Table.Tbody>
+      <Table.Tbody>
+        {data?.length ? (
+          rows
+        ) : (
+          <Table.Tr>
+            <Table.Th ta="center" colSpan={7}>
+              Ma'lumot yo'q
+            </Table.Th>
+          </Table.Tr>
+        )}
+      </Table.Tbody>
     </Table>
   );
 }

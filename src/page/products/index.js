@@ -1,16 +1,19 @@
 import React, { useCallback, useEffect } from "react";
 import TableComponent from "./table";
-import { useProducts } from "../../redux/selectors";
+import { useProducts, useUser } from "../../redux/selectors";
 import { useDispatch } from "react-redux";
 import { setLoader } from "../../redux/loaderSlice";
-import { deleteRequest, getRequest } from "../../services/api";
+import { getRequest } from "../../services/api";
 import { toast } from "react-toastify";
-import { Flex, Title } from "@mantine/core";
+import { Button, Flex, Title } from "@mantine/core";
 import { setProducts } from "../../redux/productSlice";
 import ModalScreen from "../../components/modal";
 import FormCreate from "./form";
+import { handleDelete } from "../../utils/helpers";
+import { PlusIcon, Reload } from "../../components/icon";
 
 const Product = () => {
+  const user = useUser();
   const products = useProducts();
 
   const dispatch = useDispatch();
@@ -19,7 +22,7 @@ const Product = () => {
     (update) => {
       if (!update && products?.length) return;
       dispatch(setLoader(true));
-      getRequest("product")
+      getRequest("product", user?.token)
         .then(({ data }) => {
           dispatch(setLoader(false));
           dispatch(setProducts(data?.innerData));
@@ -29,44 +32,46 @@ const Product = () => {
           toast.error(err?.response?.data?.message || "Error");
         });
     },
-    [dispatch, products?.length]
+    [dispatch, products?.length, user?.token]
   );
 
   useEffect(() => {
     handleOrders();
   }, [handleOrders]);
 
-  const handleDelete = useCallback(
-    (id) => {
-      dispatch(setLoader(true));
-      deleteRequest(`product/${id}`)
-        .then(({ data }) => {
-          dispatch(setLoader(false));
-          console.log(data);
-          toast.info(data?.message);
-          handleOrders(true);
-        })
-        .catch((err) => {
-          dispatch(setLoader(false));
-          toast.error(err?.response?.data?.message);
-        });
-    },
-    [dispatch, handleOrders]
-  );
-
   return (
     <div className="container-page">
       <Flex justify={"space-between"} align={"center"}>
         <Title>Maxsulotlar</Title>
+        <Button onClick={() => handleOrders(true)}>
+          <Flex align={"center"} gap={10}>
+            <Reload fill="#fff" />
+            <span>Ma'lumotlarni Yangilash</span>
+          </Flex>
+        </Button>
         <ModalScreen
           title={"Yangi maxsulot qo'shish"}
-          btn_title={"Yangi maxsulot qo'shish"}
+          btn_title={
+            <Flex align={"center"} gap={10}>
+              <PlusIcon fill="#fff" /> <span>Yangi maxsulot qo'shish</span>
+            </Flex>
+          }
           body={({ close }) => (
             <FormCreate handleOrders={handleOrders} close={close} />
           )}
         />
       </Flex>
-      <TableComponent data={products} handleDelete={handleDelete} />
+      <TableComponent
+        data={products}
+        handleDelete={(id) =>
+          handleDelete(
+            `product/${id}`,
+            (boolean) => dispatch(setLoader(boolean)),
+            handleOrders,
+            user?.token
+          )
+        }
+      />
     </div>
   );
 };

@@ -7,15 +7,17 @@ import { Provider } from "react-redux";
 import store from "./redux/store";
 import { ToastContainer } from "react-toastify";
 import { MantineProvider } from "@mantine/core";
+import { themes } from "./utils/constants";
 import "react-toastify/dist/ReactToastify.css";
 import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
 
 const root = createRoot(document.getElementById("root"));
 root.render(
   <Provider store={store}>
     <ToastContainer position="top-center" autoClose={500} />
     <BrowserRouter>
-      <MantineProvider>
+      <MantineProvider theme={themes}>
         <Router />
       </MantineProvider>
     </BrowserRouter>

@@ -1,24 +1,41 @@
-import axios from 'axios';
-import { BASE_URL } from '../utils/constants';
+import axios from "axios";
+import { BASE_URL } from "../utils/constants";
 
-const getToken = () => {
-  return localStorage['token-xadya'];
+const configuration = (token) => {
+  return {
+    validateStatus: function (status) {
+      if ([403].includes(status)) {
+        localStorage.clear();
+        window.location.href = "/login";
+      }
+      return true;
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
 };
 
-axios.interceptors.request.use(
-  (config) => {
-    const token = getToken();
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-export const getRequest = (url, config = {}) => axios.get(BASE_URL + url, config);
-export const postRequest = (url, data, config = {}) => axios.post(BASE_URL + url, data, config);
-export const patchRequest = (url, data, config = {}) => axios.patch(BASE_URL + url, data, config);
-export const deleteRequest = (url, config = {}) => axios.delete(BASE_URL + url, config);
+const defaultRequest = new Promise((resolve, reject) => {
+  resolve("Success");
+  reject("Error");
+});
+
+export const getRequest = (url, token) => {
+  const config = configuration(token);
+  return token ? axios.get(BASE_URL + url, config) : defaultRequest;
+};
+export const postRequest = (url, data = {}, token) => {
+  const config = configuration(token);
+  return token ? axios.post(BASE_URL + url, data, config) : defaultRequest;
+};
+export const patchRequest = (url, data = {}, token) => {
+  const config = configuration(token);
+  return token ? axios.patch(BASE_URL + url, data, config) : defaultRequest;
+};
+export const deleteRequest = (url, token) => {
+  const config = configuration(token);
+  return token ? axios.delete(BASE_URL + url, config) : defaultRequest;
+};
+export const post = (url, data = {}, config) =>
+  axios.post(BASE_URL + url, data, config);

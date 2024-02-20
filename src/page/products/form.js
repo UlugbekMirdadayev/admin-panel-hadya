@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import { postRequest } from "../../services/api";
 import { useDispatch } from "react-redux";
 import { setLoader } from "../../redux/loaderSlice";
+import { useUser } from "../../redux/selectors";
 
 const inputs = [
   {
@@ -27,10 +28,12 @@ const inputs = [
   {
     name: "type",
     label: "Turi",
+    typingChange: (e) => (e.target.value = e.target.value.toLowerCase()),
   },
 ];
 
 function FormCreate({ handleOrders, close }) {
+  const user = useUser();
   const dispatch = useDispatch();
   const [image, setImage] = useState(null);
 
@@ -50,12 +53,12 @@ function FormCreate({ handleOrders, close }) {
     const formData = new FormData();
     Object.keys(values).map((key) => formData.append(key, values[key]));
     dispatch(setLoader(true));
-    postRequest("product", formData)
+    postRequest("product", formData, user?.token)
       .then(({ data }) => {
         dispatch(setLoader(false));
         toast.success(data?.message);
         handleOrders(true);
-        close()
+        close();
       })
       .catch((err) => {
         dispatch(setLoader(false));
@@ -99,6 +102,7 @@ function FormCreate({ handleOrders, close }) {
             withAsterisk
             label={input.label}
             placeholder={input.label}
+            onInput={input.typingChange}
             {...form.getInputProps(input.name)}
           />
         ))}

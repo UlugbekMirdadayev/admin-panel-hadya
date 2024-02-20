@@ -1,6 +1,6 @@
 .navbar {
   background-color: var(--mantine-color-body);
-  height: 840px;
+  height: 100dvh;
   width: 300px;
   padding: var(--mantine-spacing-md);
   display: flex;
@@ -24,22 +24,24 @@
   padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
   border-radius: var(--mantine-radius-sm);
   font-weight: 500;
+  gap: 10px;
 }
 .link:hover {
   background-color: var(--mantine-color-gray-0);
   color: var(--mantine-color-black);
+  svg {
+    fill: var(--mantine-color-black);
+  }
 }
-.link:hover .linkIcon {
-  color: var(--mantine-color-white);
-}
+
 .link[aria-current],
 .link[aria-current]:hover {
   background-color: var(--mantine-color-blue-light);
   color: var(--mantine-color-blue-light-color);
 }
-.link[aria-current] .linkIcon,
-.link[aria-current]:hover .linkIcon {
-  color: var(--mantine-color-blue-light-color);
+.link[aria-current] svg,
+.link[aria-current]:hover svg {
+  fill: var(--mantine-color-blue-light-color);
 }
 .linkIcon {
   color: var(--mantine-color-gray-6);
