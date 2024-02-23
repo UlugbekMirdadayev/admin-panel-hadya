@@ -3,7 +3,7 @@ import { useNavigate, Route, Routes, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./page/dashboard";
 import { Box, Flex, LoadingOverlay, Select } from "@mantine/core";
-import { useLoader, useUser } from "./redux/selectors";
+import { useLoader, useProducts, useUser } from "./redux/selectors";
 import Waiter from "./page/waiter";
 import Room from "./page/rooms";
 import Orders from "./page/orders";
@@ -18,8 +18,9 @@ import { useDispatch } from "react-redux";
 import { setUser } from "./redux/userSlice";
 import { departments } from "./utils/constants";
 import { setRooms } from "./redux/roomSlice";
-import io from 'socket.io-client';
-const socket = io('wss://api.hadyacrm.uz');
+import io from "socket.io-client";
+const socket = io("wss://api.hadyacrm.uz");
+
 const routes = [
   {
     path: "/",
@@ -54,19 +55,25 @@ const routes = [
 export default function App() {
   const navigate = useNavigate();
   const user = useUser();
+  const products = useProducts();
   const dispatch = useDispatch();
   const [order, setOrder] = useState({});
   const [printType, setPrintType] = useState(departments[0].value);
+  const [prods, setProds] = useState([]);
+  const [orderPrintData, setOrderPrintData] = useState([]);
+  const [activeData, setActiveData] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const loading = useLoader();
   const { pathname } = useLocation();
 
   const refs = departments.map(useRef);
   const handlePrint = useReactToPrint({
-    documentTitle: "Hadya Admin & Bek-x2",
-    onBeforePrint: () => dispatch(setLoader(true)),
-    onAfterPrint: () => dispatch(setLoader(false)),
     removeAfterPrint: true,
+    onAfterPrint: () =>
+      setActiveData((activeData) =>
+        activeData.filter((index) => index !== activeIndex)
+      ),
   });
 
   const isHideSideBar = useMemo(
@@ -98,15 +105,52 @@ export default function App() {
   }, [dispatch, navigate, user?.active]);
 
   useEffect(() => {
+    const arr = prods.map((prod) => {
+      const product = products?.find((item) => item?.id === prod?.product_id);
+      return {
+        ...product,
+        quantity: prod?.quantity,
+        total_price: prod?.quantity * product?.price,
+      };
+    });
+    const orderTypes = [...new Set(arr.map(({ department }) => department))];
+    const orders = orderTypes.map((department) => ({
+      department,
+      products: arr.filter((product) => product?.department === department),
+    }));
+
+    setOrderPrintData(orders);
+
+    setActiveData(
+      orders.map(
+        ({ department }) =>
+          departments.find((item) => item.value === department)?.index
+      )
+    );
+
+    //
+  }, [prods, products]);
+
+  useEffect(() => {
+    activeData.map((index) => {
+      handlePrint(null, () => refs[index].current);
+      return setActiveIndex(index);
+    });
+  }, [activeData, handlePrint, refs]);
+
+  useEffect(() => {
     socket.on("connect", () => {
       socket.emit("/order");
       socket.emit("/rooms");
       socket.on("/order", (data) => {
         console.log(data);
         setOrder(data);
+        setProds(data?.order?.orders);
       });
       socket.on("/rooms", (data) => {
-        console.log(data, "rooms");
+        console.log("====================================");
+        console.log(data, "datadata");
+        console.log("====================================");
         dispatch(setRooms(data));
       });
     });
@@ -115,6 +159,9 @@ export default function App() {
     };
   }, [dispatch]);
 
+  useEffect(() => {
+    console.log(orderPrintData, "orderPrintData");
+  }, [orderPrintData]);
 
   return (
     <Flex maw={"100vw"} gutter={0}>
@@ -126,14 +173,13 @@ export default function App() {
               mt={"md"}
               label="Printerga chiqarish"
               value={printType}
-              onChange={(value, { i }) => {
+              onChange={(value, { index }) => {
                 setPrintType(value);
-                handlePrint(null, () => refs[i].current);
+                handlePrint(null, () => refs[index].current);
               }}
-              data={departments.map((item, i) => ({
+              data={departments.map((item) => ({
                 ...item,
                 disabled: printType === item.value,
-                i,
               }))}
             />
             <div
@@ -141,35 +187,43 @@ export default function App() {
                 display: "none",
               }}
             >
-              {departments.map(({ value }, i) => (
-                <React.Fragment key={value}>
-                  <div ref={refs[i]} className="cheque">
-                    <strong>Buyurtma {value}</strong>
-                    <div>
-                      Xona/Stol raqami:{" "}
-                      <strong>
-                        <i>{order?.room?.room_name || 2}</i>
-                      </strong>
+              {departments.map(({ value }, i) => {
+                const item = orderPrintData.find(
+                  (order) => order?.department === value
+                );
+                return (
+                  <React.Fragment key={value}>
+                    <div ref={refs[i]} className="cheque">
+                      <strong>Buyurtma {value}</strong>
+                      <div>
+                        Xona/Stol raqami:{" "}
+                        <strong>
+                          <i>{order?.room?.room_name || 2}</i>
+                        </strong>
+                      </div>
+                      <div>
+                        Ofitsiant ismi:{" "}
+                        <strong>
+                          <i>
+                            {order?.room?.afitsant_name ||
+                              "Ulug'bek Mirdadayev"}
+                          </i>
+                        </strong>
+                      </div>
+                      <div>
+                        Product:
+                        {item?.products?.map((it) => (
+                          <strong>
+                            <i>
+                              {it?.name || "Pizza 39sm"} <br />
+                            </i>
+                          </strong>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                      Ofitsiant ismi:{" "}
-                      <strong>
-                        <i>
-                          {order?.room?.afitsant_name || "Ulug'bek Mirdadayev"}
-                        </i>
-                      </strong>
-                    </div>
-                    <div>
-                      Product:{" "}
-                      <strong>
-                        <i>
-                          {order?.product?.product_name || "Pizza 39sm"} <br />
-                        </i>
-                      </strong>
-                    </div>
-                  </div>
-                </React.Fragment>
-              ))}
+                  </React.Fragment>
+                );
+              })}
             </div>
           </Box>
           <Sidebar />

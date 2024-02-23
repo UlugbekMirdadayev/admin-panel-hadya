@@ -5,18 +5,22 @@ export const departments = [
   {
     label: "Fast food",
     value: "fast_food",
+    index: 0,
   },
   {
     label: "Shashlik",
     value: "shashlik",
+    index: 1,
   },
   {
     label: "Tortlar/Shirinliklar",
     value: "cakes",
+    index: 2,
   },
   {
     label: "Choyxona",
     value: "tea_house",
+    index: 3,
   },
 ];
 
