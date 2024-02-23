@@ -1,9 +1,21 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate, Route, Routes, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./page/dashboard";
 import { Box, Flex, LoadingOverlay, Select } from "@mantine/core";
-import { useLoader, useProducts, useUser } from "./redux/selectors";
+import {
+  useLoader,
+  useProducts,
+  useRooms,
+  useUser,
+  useWaiter,
+} from "./redux/selectors";
 import Waiter from "./page/waiter";
 import Room from "./page/rooms";
 import Orders from "./page/orders";
@@ -12,12 +24,14 @@ import Product from "./page/products";
 import Login from "./page/admin/login";
 import { toast } from "react-toastify";
 import { useReactToPrint } from "react-to-print";
-import { post } from "./services/api";
+import { getRequest, post } from "./services/api";
 import { setLoader } from "./redux/loaderSlice";
 import { useDispatch } from "react-redux";
 import { setUser } from "./redux/userSlice";
 import { departments } from "./utils/constants";
 import { setRooms } from "./redux/roomSlice";
+import { setProducts } from "./redux/productSlice";
+import { setWaiters } from "./redux/waiterSlice";
 import io from "socket.io-client";
 const socket = io("wss://api.hadyacrm.uz");
 
@@ -56,6 +70,8 @@ export default function App() {
   const navigate = useNavigate();
   const user = useUser();
   const products = useProducts();
+  const waiters = useWaiter();
+  const rooms = useRooms();
   const dispatch = useDispatch();
   const [order, setOrder] = useState({});
   const [printType, setPrintType] = useState(departments[0].value);
@@ -70,10 +86,20 @@ export default function App() {
   const refs = departments.map(useRef);
   const handlePrint = useReactToPrint({
     removeAfterPrint: true,
-    onAfterPrint: () =>
-      setActiveData((activeData) =>
-        activeData.filter((index) => index !== activeIndex)
-      ),
+    onAfterPrint: () => {
+      setActiveData((activeData) => {
+        const arr = activeData.filter((index) => index !== activeIndex);
+        arr.length === 0 && setProds([]);
+        return arr;
+      });
+      setOrderPrintData((arr) =>
+        arr.filter(
+          ({ department }) =>
+            department !==
+            departments.find((it) => it.index === activeIndex).value
+        )
+      );
+    },
   });
 
   const isHideSideBar = useMemo(
@@ -143,14 +169,12 @@ export default function App() {
       socket.emit("/order");
       socket.emit("/rooms");
       socket.on("/order", (data) => {
-        console.log(data);
+        console.log(data,'order');
         setOrder(data);
         setProds(data?.order?.orders);
       });
       socket.on("/rooms", (data) => {
-        console.log("====================================");
-        console.log(data, "datadata");
-        console.log("====================================");
+        console.log(data, "rooms");
         dispatch(setRooms(data));
       });
     });
@@ -159,73 +183,124 @@ export default function App() {
     };
   }, [dispatch]);
 
+  const handleOrders = useCallback(() => {
+    if (products?.length || !user?.token) return;
+    dispatch(setLoader(true));
+    getRequest("product", user?.token)
+      .then(({ data }) => {
+        dispatch(setLoader(false));
+        dispatch(setProducts(data?.innerData));
+      })
+      .catch((err) => {
+        console.log(err, "handleOrders");
+        dispatch(setLoader(false));
+      });
+  }, [dispatch, products?.length, user?.token]);
+
+  const handleGetWaiters = useCallback(() => {
+    if (waiters?.length || !user?.token) return;
+    dispatch(setLoader(true));
+    getRequest("afitsant", user?.token)
+      .then(({ data }) => {
+        dispatch(setLoader(false));
+        dispatch(setWaiters(data?.innerData));
+      })
+      .catch((err) => {
+        console.log(err, "handleGetWaiters");
+        dispatch(setLoader(false));
+      });
+  }, [dispatch, waiters?.length, user?.token]);
+
+  const handleGetRooms = useCallback(() => {
+    if (rooms?.length || !user?.token) return;
+    dispatch(setLoader(true));
+    getRequest("room", user?.token)
+      .then(({ data }) => {
+        dispatch(setLoader(false));
+        dispatch(setRooms(data?.innerData));
+      })
+      .catch((err) => {
+        console.log(err, "handleGetRooms");
+        dispatch(setLoader(false));
+      });
+  }, [dispatch, rooms?.length, user?.token]);
+
   useEffect(() => {
-    console.log(orderPrintData, "orderPrintData");
-  }, [orderPrintData]);
+    handleOrders();
+    handleGetWaiters();
+    handleGetRooms();
+  }, [handleOrders, handleGetWaiters, handleGetRooms]);
 
   return (
     <Flex maw={"100vw"} gutter={0}>
       {isHideSideBar ? null : (
         <Box miw={200}>
-          <Box p={"lg"}>
-            <Select
-              required
-              mt={"md"}
-              label="Printerga chiqarish"
-              value={printType}
-              onChange={(value, { index }) => {
-                setPrintType(value);
-                handlePrint(null, () => refs[index].current);
-              }}
-              data={departments.map((item) => ({
-                ...item,
-                disabled: printType === item.value,
-              }))}
-            />
-            <div
-              style={{
-                display: "none",
-              }}
-            >
-              {departments.map(({ value }, i) => {
-                const item = orderPrintData.find(
-                  (order) => order?.department === value
-                );
-                return (
-                  <React.Fragment key={value}>
-                    <div ref={refs[i]} className="cheque">
-                      <strong>Buyurtma {value}</strong>
-                      <div>
-                        Xona/Stol raqami:{" "}
-                        <strong>
-                          <i>{order?.room?.room_name || 2}</i>
-                        </strong>
-                      </div>
-                      <div>
-                        Ofitsiant ismi:{" "}
-                        <strong>
-                          <i>
-                            {order?.room?.afitsant_name ||
-                              "Ulug'bek Mirdadayev"}
-                          </i>
-                        </strong>
-                      </div>
-                      <div>
-                        Product:
-                        {item?.products?.map((it) => (
+          {activeData.length ? (
+            <Box p={"lg"}>
+              <Select
+                required
+                mt={"md"}
+                label="Printerga chiqarish"
+                value={printType}
+                onChange={(value, { index }) => {
+                  setPrintType(value);
+                  handlePrint(null, () => refs[index].current);
+                }}
+                data={departments.map((item) => ({
+                  ...item,
+                  disabled: printType === item.value,
+                }))}
+              />
+              <div
+                style={{
+                  display: "none",
+                }}
+              >
+                {departments.map(({ value, label }, i) => {
+                  const item = orderPrintData?.find(
+                    (order) => order?.department === value
+                  );
+
+                  const waiter = waiters.find(
+                    (item) => item?.id === order?.afitsant_id
+                  );
+                  const room = rooms.find(
+                    (item) => item?.id === order?.order?.room_id
+                  );
+                  return (
+                    <React.Fragment key={value}>
+                      <div ref={refs[i]} className="cheque">
+                        <strong>Buyurtma {label}</strong>
+                        <div>
+                          Xona/Stol raqami:{" "}
                           <strong>
-                            <i>
-                              {it?.name || "Pizza 39sm"} <br />
-                            </i>
+                            <i>{room?.name}</i>
                           </strong>
-                        ))}
+                        </div>
+                        <div>
+                          Ofitsiant ismi:{" "}
+                          <strong>
+                            <i>{waiter?.fullname}</i>
+                          </strong>
+                        </div>
+                        <div>
+                          {item?.products?.map((it) => (
+                            <strong>
+                              <i>
+                                Product: {it?.name} dan ({it?.quantity}{" "}
+                                {it?.unit}
+                                )<br />
+                              </i>
+                            </strong>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-            </div>
-          </Box>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </Box>
+          ) : null}
           <Sidebar />
         </Box>
       )}
