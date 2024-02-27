@@ -1,4 +1,4 @@
-import { Button, Text } from "@mantine/core";
+import { Button, Menu, Text } from "@mantine/core";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import classes from "./style.module.css";
@@ -65,9 +65,19 @@ export default function Sidebar() {
           <Globus />
           <span>Web-sahifa</span>
         </a>
-        <Button onClick={handleLogout} w={"100%"} py={"5px"} h={'auto'} mt={80} bg={"red"}>
-          <Text pr={"sm"}>Chiqish</Text> <LogOut fill="#fff" />
-        </Button>
+        <Menu position="right-start" width={"100px"}>
+          <Menu.Target>
+            <Button w={"100%"} py={"5px"} h={"auto"} mt={80} bg={"red"}>
+              <Text pr={"sm"}>Chiqish</Text> <LogOut fill="#fff" />
+            </Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item c={"red"} onClick={handleLogout}>
+              Ha
+            </Menu.Item>
+            <Menu.Item>Yo'q</Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
       </div>
     </nav>
   );

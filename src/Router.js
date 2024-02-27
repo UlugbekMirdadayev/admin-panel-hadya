@@ -8,7 +8,16 @@ import React, {
 import { useNavigate, Route, Routes, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./page/dashboard";
-import { Box, Flex, LoadingOverlay, Select } from "@mantine/core";
+import {
+  Box,
+  Button,
+  Center,
+  Flex,
+  Loader,
+  // LoadingOverlay,
+  Select,
+  Modal,
+} from "@mantine/core";
 import {
   useLoader,
   useProducts,
@@ -33,6 +42,7 @@ import { setRooms } from "./redux/roomSlice";
 import { setProducts } from "./redux/productSlice";
 import { setWaiters } from "./redux/waiterSlice";
 import io from "socket.io-client";
+import { formatCurrencyUZS } from "./utils/helpers";
 const socket = io("wss://api.hadyacrm.uz");
 
 const routes = [
@@ -84,6 +94,7 @@ export default function App() {
   const { pathname } = useLocation();
 
   const refs = departments.map(useRef);
+  const checkCompleted = useRef();
   const handlePrint = useReactToPrint({
     removeAfterPrint: true,
     onAfterPrint: () => {
@@ -131,7 +142,7 @@ export default function App() {
   }, [dispatch, navigate, user?.active]);
 
   useEffect(() => {
-    const arr = prods.map((prod) => {
+    const arr = prods?.map((prod) => {
       const product = products?.find((item) => item?.id === prod?.product_id);
       return {
         ...product,
@@ -139,16 +150,16 @@ export default function App() {
         total_price: prod?.quantity * product?.price,
       };
     });
-    const orderTypes = [...new Set(arr.map(({ department }) => department))];
-    const orders = orderTypes.map((department) => ({
+    const orderTypes = [...new Set(arr?.map(({ department }) => department))];
+    const orders = orderTypes?.map((department) => ({
       department,
-      products: arr.filter((product) => product?.department === department),
+      products: arr?.filter((product) => product?.department === department),
     }));
 
     setOrderPrintData(orders);
 
     setActiveData(
-      orders.map(
+      orders?.map(
         ({ department }) =>
           departments.find((item) => item.value === department)?.index
       )
@@ -158,7 +169,7 @@ export default function App() {
   }, [prods, products]);
 
   useEffect(() => {
-    activeData.map((index) => {
+    activeData?.map((index) => {
       handlePrint(null, () => refs[index].current);
       return setActiveIndex(index);
     });
@@ -169,13 +180,16 @@ export default function App() {
       socket.emit("/order");
       socket.emit("/rooms");
       socket.on("/order", (data) => {
-        console.log(data,'order');
+        console.log(data, "order");
         setOrder(data);
         setProds(data?.order?.orders);
       });
       socket.on("/rooms", (data) => {
         console.log(data, "rooms");
         dispatch(setRooms(data));
+      });
+      socket.on("/order/completed", (data) => {
+        console.log(data, "completed order");
       });
     });
     return () => {
@@ -232,12 +246,24 @@ export default function App() {
   }, [handleOrders, handleGetWaiters, handleGetRooms]);
 
   return (
-    <Flex maw={"100vw"} gutter={0}>
+    <Flex maw={"100vw"} gap={20} gutter={0}>
       {isHideSideBar ? null : (
         <Box miw={200}>
-          {activeData.length ? (
-            <Box p={"lg"}>
+          <Modal
+            styles={{
+              content: { maxWidth: 360 },
+            }}
+            title="Chek"
+            opened={activeData?.length}
+            onClose={() => {}}
+            closeButtonProps={{
+              style: { display: "none" },
+            }}
+          >
+            <Box w={300} m={"auto"}>
               <Select
+                pos={"sticky"}
+                top={0}
                 required
                 mt={"md"}
                 label="Printerga chiqarish"
@@ -251,79 +277,123 @@ export default function App() {
                   disabled: printType === item.value,
                 }))}
               />
-              <div
-                style={{
-                  display: "none",
-                }}
-              >
-                {departments.map(({ value, label }, i) => {
-                  const item = orderPrintData?.find(
-                    (order) => order?.department === value
-                  );
+              {departments.map(({ value, label }, i) => {
+                const item = orderPrintData?.find(
+                  (order) => order?.department === value
+                );
 
-                  const waiter = waiters.find(
-                    (item) => item?.id === order?.afitsant_id
-                  );
-                  const room = rooms.find(
-                    (item) => item?.id === order?.order?.room_id
-                  );
-                  return (
-                    <React.Fragment key={value}>
-                      <div ref={refs[i]} className="cheque">
-                        <strong>Buyurtma {label}</strong>
-                        <div>
-                          Xona/Stol raqami:{" "}
-                          <strong>
-                            <i>{room?.name}</i>
-                          </strong>
-                        </div>
-                        <div>
-                          Ofitsiant ismi:{" "}
-                          <strong>
-                            <i>{waiter?.fullname}</i>
-                          </strong>
-                        </div>
-                        <div>
-                          {item?.products?.map((it) => (
-                            <strong>
-                              <i>
-                                Product: {it?.name} dan ({it?.quantity}{" "}
-                                {it?.unit}
-                                )<br />
-                              </i>
-                            </strong>
-                          ))}
-                        </div>
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
+                const waiter = waiters.find(
+                  (item) => item?.id === order?.afitsant_id
+                );
+                const room = rooms.find(
+                  (item) => item?.id === order?.order?.room_id
+                );
+                return (
+                  <Box mt={"md"} key={value} ref={refs[i]} className="cheque">
+                    <strong>Buyurtma {label}</strong>
+                    <div>
+                      Xona/Stol raqami:{" "}
+                      <strong>
+                        <i>{room?.name}</i>
+                      </strong>
+                    </div>
+                    <div>
+                      Ofitsiant ismi:{" "}
+                      <strong>
+                        <i>{waiter?.fullname}</i>
+                      </strong>
+                    </div>
+                    <div>
+                      {item?.products?.map((it, index) => (
+                        <strong key={index}>
+                          <i>
+                            Product: {it?.name} dan ({it?.quantity} {it?.unit}
+                            )<br />
+                          </i>
+                        </strong>
+                      ))}
+                    </div>
+                  </Box>
+                );
+              })}
+              <Box mt={"md"} ref={checkCompleted} className="cheque">
+                <strong>Buyurtma cheki</strong>
+                <div>
+                  Xona/Stol raqami:{" "}
+                  <strong>
+                    <i>5</i>
+                  </strong>
+                </div>
+                <div>
+                  Ofitsiant ismi:{" "}
+                  <strong>
+                    <i>Bekzod</i>
+                  </strong>
+                </div>
+                <div>
+                  {[{ name: "Pizza 39sm", quantity: 5, unit: "dona" }].map(
+                    (it, index) => (
+                      <strong key={index}>
+                        <i>
+                          Product: {it?.name} dan ({it?.quantity} {it?.unit}
+                          )<br />
+                        </i>
+                      </strong>
+                    )
+                  )}
+                </div>
+                <div>
+                  <strong>Umumiy summa: {formatCurrencyUZS(50000)}</strong>
+                </div>
+              </Box>
+              <Button
+                mt={"md"}
+                pos={"sticky"}
+                bottom={20}
+                w={"100%"}
+                onClick={() => handlePrint(null, () => checkCompleted.current)}
+              >
+                Chek chiqarish
+              </Button>
             </Box>
-          ) : null}
+          </Modal>
           <Sidebar />
         </Box>
       )}
-      <Flex
+      <Box
         w={`calc(100dvw - ${isHideSideBar ? "0px" : "200px"})`}
         mih={isHideSideBar ? "100dvh" : "none"}
         pos={"relative"}
         style={{
-          overflowY: "auto",
-          maxHeight: "100dvh",
+          overflowY: loading ? "hidden" : "auto",
+          maxHeight: `calc(100dvh - ${loading ? 100 : 0}px)`,
+          transition: "300ms ease",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
-        <LoadingOverlay
+        {/* <LoadingOverlay
           overlayProps={{ radius: "sm" }}
           loaderProps={{ type: "dots" }}
           visible={loading}
-        />
+        /> */}
+        <Center
+          p={loading ? "lg" : 0}
+          h={!loading && 0}
+          style={{
+            overflow: "hidden",
+            transition: "300ms ease",
+          }}
+        >
+          <Loader />
+        </Center>
         <Routes>
           {routes.map((route) => (
             <Route key={route.path} {...route} />
           ))}
         </Routes>
-      </Flex>
+      </Box>
     </Flex>
   );
 }

@@ -51,7 +51,7 @@ function FormCreate({ handleOrders, close }) {
   const onSubmit = (values) => {
     if (!values.img) return toast.info("Rasm yuklang !");
     const formData = new FormData();
-    Object.keys(values).map((key) => formData.append(key, values[key]));
+    Object.keys(values).map((key) => formData.append(key, typeof values[key] === "string" ? values[key]?.trim() : values[key]));
     dispatch(setLoader(true));
     postRequest("product", formData, user?.token)
       .then(({ data }) => {

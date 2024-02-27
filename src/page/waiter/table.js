@@ -4,6 +4,8 @@ import { formatCurrencyUZS } from "../../utils/helpers";
 import { patchRequest } from "../../services/api";
 import { toast } from "react-toastify";
 import { useUser } from "../../redux/selectors";
+import moment from "moment";
+import "moment/min/locales";
 
 export default function TableComponent({
   data,
@@ -11,6 +13,7 @@ export default function TableComponent({
   setWaiters,
   handleDelete,
 }) {
+  moment.locale("uz-latn");
   const user = useUser();
   const handleAktiveChange = (id) => {
     setLoader(true);
@@ -44,7 +47,7 @@ export default function TableComponent({
       </Table.Td>
       <Table.Td>{element?.fullname}</Table.Td>
       <Table.Td>{element?.phone}</Table.Td>
-      <Table.Td>{formatCurrencyUZS(element?.balance)}</Table.Td>
+      <Table.Td>{moment(element?.created_at).format("DD-MMMM-YYYY dddd")}</Table.Td>
       <Table.Td>
         <Menu
           shadow="md"
@@ -83,7 +86,7 @@ export default function TableComponent({
           <Table.Th>Status</Table.Th>
           <Table.Th>Ofitsiant ismi</Table.Th>
           <Table.Th>Ofitsiant Raqami</Table.Th>
-          <Table.Th>Balansi</Table.Th>
+          <Table.Th>Ish boshlagan sanasi</Table.Th>
           <Table.Th>Ishdan olish</Table.Th>
         </Table.Tr>
       </Table.Thead>
@@ -92,7 +95,7 @@ export default function TableComponent({
           rows
         ) : (
           <Table.Tr>
-            <Table.Th ta="center" colSpan={5}>
+            <Table.Th ta="center" colSpan={4}>
               Ma'lumot yo'q
             </Table.Th>
           </Table.Tr>
