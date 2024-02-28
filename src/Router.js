@@ -15,7 +15,7 @@ import {
   Flex,
   Loader,
   // LoadingOverlay,
-  Select,
+  // Select,
   Modal,
 } from "@mantine/core";
 import {
@@ -76,6 +76,62 @@ const routes = [
   },
 ];
 
+const Check = ({ handlePrint, order, setData, index }) => {
+  const ref = useRef();
+  console.log(order);
+  return (
+    <>
+      <Box mt={"md"} ref={ref} className="cheque">
+        <strong
+          style={{
+            fontSize: 14,
+          }}
+        >
+          Tashrif buyurganingiz uchun tashakkur!
+        </strong>
+        <div>
+          Xona/Stol raqami:{" "}
+          <strong>
+            <i>{order?.room_name}</i>
+          </strong>
+        </div>
+        <div>
+          Ofitsiant ismi:{" "}
+          <strong>
+            <i>{order?.afitsant_name}</i>
+          </strong>
+        </div>
+        <div>
+          {order?.products?.map((it, index) => (
+            <strong key={index}>
+              <i>
+                Product: {it?.product_name} dan ({it?.product_quantity}{" "}
+                {it?.product_unit}
+                )<br />
+              </i>
+            </strong>
+          ))}
+        </div>
+        <div>
+          <strong>Umumiy summa: {formatCurrencyUZS(order?.total_price)}</strong>
+        </div>
+      </Box>
+      <Button
+        mt={"md"}
+        pos={"sticky"}
+        bottom={20}
+        w={"100%"}
+        onClick={() => {
+          setData((data) => data.filter((_, i) => i !== index));
+          handlePrint(null, () => ref.current);
+        }}
+      >
+        Chek chiqarish
+      </Button>
+    </>
+  );
+};
+
 export default function App() {
   const navigate = useNavigate();
   const user = useUser();
@@ -84,17 +140,18 @@ export default function App() {
   const rooms = useRooms();
   const dispatch = useDispatch();
   const [order, setOrder] = useState({});
-  const [printType, setPrintType] = useState(departments[0].value);
+  // const [printType, setPrintType] = useState(departments[0].value);
   const [prods, setProds] = useState([]);
   const [orderPrintData, setOrderPrintData] = useState([]);
   const [activeData, setActiveData] = useState([]);
+  const [completedData, setCompletedData] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const loading = useLoader();
   const { pathname } = useLocation();
 
-  const refs = departments.map(useRef);
-  const checkCompleted = useRef();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const refs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const handlePrint = useReactToPrint({
     removeAfterPrint: true,
     onAfterPrint: () => {
@@ -111,6 +168,10 @@ export default function App() {
         )
       );
     },
+  });
+
+  const handlePrintComplete = useReactToPrint({
+    removeAfterPrint: true,
   });
 
   const isHideSideBar = useMemo(
@@ -189,6 +250,7 @@ export default function App() {
         dispatch(setRooms(data));
       });
       socket.on("/order/completed", (data) => {
+        setCompletedData((prev) => [...prev, data]);
         console.log(data, "completed order");
       });
     });
@@ -247,49 +309,38 @@ export default function App() {
 
   return (
     <Flex maw={"100vw"} gap={20} gutter={0}>
-      {isHideSideBar ? null : (
-        <Box miw={200}>
-          <Modal
-            styles={{
-              content: { maxWidth: 360 },
-            }}
-            title="Chek"
-            opened={activeData?.length}
-            onClose={() => {}}
-            closeButtonProps={{
-              style: { display: "none" },
-            }}
-          >
-            <Box w={300} m={"auto"}>
-              <Select
-                pos={"sticky"}
-                top={0}
-                required
-                mt={"md"}
-                label="Printerga chiqarish"
-                value={printType}
-                onChange={(value, { index }) => {
-                  setPrintType(value);
-                  handlePrint(null, () => refs[index].current);
-                }}
-                data={departments.map((item) => ({
-                  ...item,
-                  disabled: printType === item.value,
-                }))}
-              />
-              {departments.map(({ value, label }, i) => {
+      <Box miw={200} display={isHideSideBar ? "none" : "block"}>
+        <Modal
+          styles={{
+            content: { maxWidth: 360 },
+          }}
+          title="Chek"
+          opened={completedData?.length}
+          onClose={() => {}}
+          closeButtonProps={{
+            style: { display: "none" },
+          }}
+        >
+          <Box w={300} m={"auto"}>
+            <div style={{ display: "none" }}>
+              {departments.map(({ value, label, index }) => {
                 const item = orderPrintData?.find(
                   (order) => order?.department === value
                 );
 
-                const waiter = waiters.find(
+                const waiter = waiters?.find(
                   (item) => item?.id === order?.afitsant_id
                 );
-                const room = rooms.find(
+                const room = rooms?.find(
                   (item) => item?.id === order?.order?.room_id
                 );
                 return (
-                  <Box mt={"md"} key={value} ref={refs[i]} className="cheque">
+                  <Box
+                    mt={"md"}
+                    key={value}
+                    ref={refs[index]}
+                    className="cheque"
+                  >
                     <strong>Buyurtma {label}</strong>
                     <div>
                       Xona/Stol raqami:{" "}
@@ -316,50 +367,21 @@ export default function App() {
                   </Box>
                 );
               })}
-              <Box mt={"md"} ref={checkCompleted} className="cheque">
-                <strong>Buyurtma cheki</strong>
-                <div>
-                  Xona/Stol raqami:{" "}
-                  <strong>
-                    <i>5</i>
-                  </strong>
-                </div>
-                <div>
-                  Ofitsiant ismi:{" "}
-                  <strong>
-                    <i>Bekzod</i>
-                  </strong>
-                </div>
-                <div>
-                  {[{ name: "Pizza 39sm", quantity: 5, unit: "dona" }].map(
-                    (it, index) => (
-                      <strong key={index}>
-                        <i>
-                          Product: {it?.name} dan ({it?.quantity} {it?.unit}
-                          )<br />
-                        </i>
-                      </strong>
-                    )
-                  )}
-                </div>
-                <div>
-                  <strong>Umumiy summa: {formatCurrencyUZS(50000)}</strong>
-                </div>
-              </Box>
-              <Button
-                mt={"md"}
-                pos={"sticky"}
-                bottom={20}
-                w={"100%"}
-                onClick={() => handlePrint(null, () => checkCompleted.current)}
-              >
-                Chek chiqarish
-              </Button>
-            </Box>
-          </Modal>
-          <Sidebar />
-        </Box>
-      )}
+            </div>
+            {completedData.map((order, i) => (
+              <Check
+                key={i}
+                order={order?.order}
+                handlePrint={handlePrintComplete}
+                setData={setCompletedData}
+                index={i}
+              />
+            ))}
+          </Box>
+        </Modal>
+        <Sidebar />
+      </Box>
+
       <Box
         w={`calc(100dvw - ${isHideSideBar ? "0px" : "200px"})`}
         mih={isHideSideBar ? "100dvh" : "none"}
