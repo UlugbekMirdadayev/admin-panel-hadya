@@ -1,6 +1,5 @@
 import React from "react";
 import { Button, Menu, Table } from "@mantine/core";
-import { formatCurrencyUZS } from "../../utils/helpers";
 import { patchRequest } from "../../services/api";
 import { toast } from "react-toastify";
 import { useUser } from "../../redux/selectors";
@@ -47,7 +46,9 @@ export default function TableComponent({
       </Table.Td>
       <Table.Td>{element?.fullname}</Table.Td>
       <Table.Td>{element?.phone}</Table.Td>
-      <Table.Td>{moment(element?.created_at).format("DD-MMMM-YYYY dddd")}</Table.Td>
+      <Table.Td>
+        {moment(element?.created_at).format("DD-MMMM-YYYY dddd")}
+      </Table.Td>
       <Table.Td>
         <Menu
           shadow="md"
@@ -105,16 +106,8 @@ export default function TableComponent({
         <Table.Tfoot>
           <Table.Tr />
           <Table.Tr>
-            <Table.Th>Umumiy summa</Table.Th>
-            <Table.Th colSpan={4}>
-              {formatCurrencyUZS(
-                data?.reduce(
-                  (accumulator, currentValue) =>
-                    +accumulator + +currentValue?.balance,
-                  []
-                )
-              )}
-            </Table.Th>
+            <Table.Th>Umumiy ishchilar soni</Table.Th>
+            <Table.Th colSpan={4}>{data?.length} kishi</Table.Th>
           </Table.Tr>
         </Table.Tfoot>
       ) : null}

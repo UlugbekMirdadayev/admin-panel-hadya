@@ -8,16 +8,7 @@ import React, {
 import { useNavigate, Route, Routes, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./page/dashboard";
-import {
-  Box,
-  Button,
-  Center,
-  Flex,
-  Loader,
-  // LoadingOverlay,
-  // Select,
-  Modal,
-} from "@mantine/core";
+import { Box, Button, Center, Flex, Loader } from "@mantine/core";
 import {
   useLoader,
   useProducts,
@@ -76,9 +67,11 @@ const routes = [
   },
 ];
 
-const Check = ({ handlePrint, order, setData, index }) => {
+const Check = ({ order, setData, index }) => {
+  const handlePrintComplete = useReactToPrint({
+    removeAfterPrint: true,
+  });
   const ref = useRef();
-  console.log(order);
   return (
     <>
       <Box mt={"md"} ref={ref} className="cheque">
@@ -113,7 +106,14 @@ const Check = ({ handlePrint, order, setData, index }) => {
           ))}
         </div>
         <div>
-          <strong>Umumiy summa: {formatCurrencyUZS(order?.total_price)}</strong>
+          {/* <strong>Narx: {formatCurrencyUZS(+order?.total_price)}</strong><br /> */}
+          <strong>
+            Xizmat haqqi: {formatCurrencyUZS(+order?.total_price * 0.1)}
+          </strong>
+          <br />
+          <strong>
+            Umumiy hisob: {formatCurrencyUZS(+order?.total_price * 1.1)}
+          </strong>
         </div>
       </Box>
       <Button
@@ -123,7 +123,7 @@ const Check = ({ handlePrint, order, setData, index }) => {
         w={"100%"}
         onClick={() => {
           setData((data) => data.filter((_, i) => i !== index));
-          handlePrint(null, () => ref.current);
+          handlePrintComplete(null, () => ref.current);
         }}
       >
         Chek chiqarish
@@ -168,10 +168,6 @@ export default function App() {
         )
       );
     },
-  });
-
-  const handlePrintComplete = useReactToPrint({
-    removeAfterPrint: true,
   });
 
   const isHideSideBar = useMemo(
@@ -310,18 +306,11 @@ export default function App() {
   return (
     <Flex maw={"100vw"} gap={20} gutter={0}>
       <Box miw={200} display={isHideSideBar ? "none" : "block"}>
-        <Modal
-          styles={{
-            content: { maxWidth: 360 },
-          }}
-          title="Chek"
-          opened={completedData?.length}
-          onClose={() => {}}
-          closeButtonProps={{
-            style: { display: "none" },
-          }}
+        <div
+          className="modal-print"
+          style={{ display: completedData?.length ? "flex" : "none" }}
         >
-          <Box w={300} m={"auto"}>
+          <Box w={360} m={"auto"} className="print-body">
             <div style={{ display: "none" }}>
               {departments.map(({ value, label, index }) => {
                 const item = orderPrintData?.find(
@@ -372,13 +361,12 @@ export default function App() {
               <Check
                 key={i}
                 order={order?.order}
-                handlePrint={handlePrintComplete}
                 setData={setCompletedData}
                 index={i}
               />
             ))}
           </Box>
-        </Modal>
+        </div>
         <Sidebar />
       </Box>
 
