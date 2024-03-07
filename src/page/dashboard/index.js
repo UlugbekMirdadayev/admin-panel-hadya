@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { Button, Flex, Select, Text, Title } from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
+import { useDispatch } from "react-redux";
+import { toast } from "react-toastify";
+import moment from "moment";
 import TableComponent from "./table";
 import { useReport, useUser } from "../../redux/selectors";
 import { setReport } from "../../redux/reportSlice";
-import { useDispatch } from "react-redux";
 import { setLoader } from "../../redux/loaderSlice";
 import { getRequest } from "../../services/api";
-import { toast } from "react-toastify";
-import { DatePickerInput } from "@mantine/dates";
-import { Button, Flex, Select, Text, Title } from "@mantine/core";
-import moment from "moment";
 import { departments } from "../../utils/constants";
 
 const Dashboard = () => {
@@ -116,7 +116,11 @@ const Dashboard = () => {
             )
           : null}
       </Text>
-      <TableComponent data={report} />
+      <TableComponent
+        data={report}
+        user={user}
+        setLoader={(boolean) => dispatch(setLoader(boolean))}
+      />
     </div>
   );
 };
